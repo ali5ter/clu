@@ -18,6 +18,10 @@ type vhs &>/dev/null || {
   exit 1
 }
 
+cd .. || exit
+go install . && export PATH="$PATH:$(go env GOPATH)/bin"
+cd - || exit
+
 # https://github.com/charmbracelet/vhs/issues/419
 unset PROMPT_COMMAND
 
