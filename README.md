@@ -1,3 +1,5 @@
+<!-- markdownlint-disable-file MD041 -->
+
 ![clu demo](examples/clu_demo.gif)
 
 # clu
@@ -40,11 +42,11 @@ clu | jq '.[] | select(.score >= 9)'
 
 ### Flags
 
-| Flag | What it does |
-|------|-------------|
-| `--json` | Force JSON output even in a terminal |
-| `--offline` | Use the local cache — no network request |
-| `--no-tty` | Pipeline mode regardless of how you're running it |
+| Flag        | What it does                                       |
+| ----------- | -------------------------------------------------- |
+| `--json`    | Force JSON output even in a terminal               |
+| `--offline` | Use the local cache — no network request           |
+| `--no-tty`  | Pipeline mode regardless of how you're running it  |
 
 ---
 
@@ -65,15 +67,15 @@ read on the right. Scroll the article with `shift+↑` and `shift+↓`.
 
 ### Key bindings
 
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` or `j` / `k` | Navigate list |
-| `/` | Filter |
-| `enter` | Open in browser |
-| `ctrl+j` | Output selected item as JSON and exit |
-| `shift+↑` / `shift+↓` | Scroll detail pane |
-| `tab` / `shift+tab` | Switch tabs |
-| `q` | Quit |
+| Key                      | Action                                |
+| ------------------------ | ------------------------------------- |
+| `↑` / `↓` or `j` / `k`  | Navigate list                         |
+| `/`                      | Filter                                |
+| `enter`                  | Open in browser                       |
+| `ctrl+j`                 | Output selected item as JSON and exit |
+| `shift+↑` / `shift+↓`   | Scroll detail pane                    |
+| `tab` / `shift+tab`      | Switch tabs                           |
+| `q`                      | Quit                                  |
 
 ---
 

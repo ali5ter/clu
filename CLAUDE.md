@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 and feature articles. It is a Go rewrite of a bash v0.3.0 tool. The bash source lives at
 `../command-line-user-site/clu` and serves as the functional spec.
 
-Module: `github.com/ali5ter/clu` | Author: Alister Lewis-Bowen &lt;alister@lewis-bowen.org&gt;
+Module: `github.com/ali5ter/clu` | Author: Alister Lewis-Bowen \<<alister@lewis-bowen.org>\>
 
 ---
 
@@ -44,7 +44,7 @@ goreleaser release                     # tagged release
 - **TUI mode** — launched when stdout is a terminal; Bubble Tea app
 - **Pipeline mode** — when piped/redirected or `--no-tty`; emits JSON to stdout
 
-```
+```text
 main.go           TTY detection → dispatch to tui.Run() or pipeline.EmitJSON()
 cmd/root.go       Cobra flag setup (--json, --offline, --no-tty, --version)
 internal/api/     HTTP client + data types for catalog, articles, about endpoints
@@ -67,7 +67,7 @@ Key bindings are centralised in `keys.go`. All colours/borders come from `styles
 
 ### Data flow
 
-```
+```text
 API endpoints (commandlineuser.com/api/v1/)
   └─ internal/api/client.go  → types.go structs
         └─ internal/cache/   (persist for --offline)
@@ -76,11 +76,11 @@ API endpoints (commandlineuser.com/api/v1/)
 
 API targets (migrate to `/api/v1/` — current endpoints are unversioned):
 
-| Endpoint | Type |
-|----------|------|
-| `/api/catalog.json` | `[]CatalogItem` |
-| `/api/articles.json` | `[]Article` |
-| `/api/about.json` | `About` |
+| Endpoint             | Type            |
+| -------------------- | --------------- |
+| `/api/catalog.json`  | `[]CatalogItem` |
+| `/api/articles.json` | `[]Article`     |
+| `/api/about.json`    | `About`         |
 
 ---
 
@@ -88,7 +88,7 @@ API targets (migrate to `/api/v1/` — current endpoints are unversioned):
 
 ### Colour palette (site palette → Lip Gloss)
 
-```
+```text
 text:   #e9eff3   foreground
 muted:  #a8b6c0   secondary text
 panel:  #161d24   background panels
@@ -102,7 +102,7 @@ All palette constants live in `internal/tui/styles.go`.
 
 ### UI layout
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │  clu  ·  commandlineuser.com             142 tools  6 articles   │  header (Lip Gloss)
 ├──────────────────────────┬───────────────────────────────────────┤
@@ -120,12 +120,12 @@ Tabs or key bindings switch between Catalog / Articles / About views.
 
 ### Charmbracelet stack
 
-| Library | Role |
-|---------|------|
-| [Bubble Tea](https://github.com/charmbracelet/bubbletea) | Core TUI — Elm architecture |
-| [Lip Gloss](https://github.com/charmbracelet/lipgloss) | Styling, layout, borders |
-| [Bubbles](https://github.com/charmbracelet/bubbles) | list, viewport, textinput, spinner |
-| [Glamour](https://github.com/charmbracelet/glamour) | Markdown rendering (articles preview) |
+| Library                                                  | Role                                  |
+| -------------------------------------------------------- | ------------------------------------- |
+| [Bubble Tea](https://github.com/charmbracelet/bubbletea) | Core TUI — Elm architecture           |
+| [Lip Gloss](https://github.com/charmbracelet/lipgloss)   | Styling, layout, borders              |
+| [Bubbles](https://github.com/charmbracelet/bubbles)      | list, viewport, textinput, spinner    |
+| [Glamour](https://github.com/charmbracelet/glamour)      | Markdown rendering (articles preview) |
 
 ### Behaviours preserved from bash v0.3.0
 

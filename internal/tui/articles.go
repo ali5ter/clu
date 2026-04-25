@@ -164,6 +164,11 @@ func (m articlesModel) Update(msg tea.Msg) (articlesModel, tea.Cmd) {
 				m.filter.Blur()
 				m.applyFilter()
 				return m, nil
+			case "up", "k", "down", "j":
+				m.filtering = false
+				m.filter.Blur()
+				m.applyFilter()
+				// don't return — navigate the list below
 			default:
 				var cmd tea.Cmd
 				m.filter, cmd = m.filter.Update(msg)
