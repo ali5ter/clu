@@ -4,9 +4,13 @@
 
 # clu
 
-A terminal interface for [commandlineuser.com](https://commandlineuser.com) — a scored,
-curated catalogue of command-line tools. Browse the catalogue, read feature articles, and
-pipe what you find into whatever you're building.
+Yes, it's a command-line tool for a website about command-line tools. I know.
+
+[commandlineuser.com](https://commandlineuser.com) catalogues and scores CLI tools. It seemed only right
+that you should be able to explore it without leaving the terminal — and that the output should be
+pipeable into the very tools it's recommending.
+
+That's the joke. It also happens to be useful.
 
 ---
 
