@@ -19,7 +19,7 @@ That's the joke. It also happens to be useful.
 **Homebrew** (macOS and Linux):
 
 ```bash
-brew install ali5ter/tap/clu
+brew install ali5ter/clu/clu
 ```
 
 **Binary** — download a pre-built binary for your platform from the
