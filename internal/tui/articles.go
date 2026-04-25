@@ -26,7 +26,7 @@ func (i articleItem) FilterValue() string {
 type articlesDelegate struct{ width int }
 
 func (d articlesDelegate) Height() int                             { return 2 }
-func (d articlesDelegate) Spacing() int                            { return 0 }
+func (d articlesDelegate) Spacing() int                            { return 1 }
 func (d articlesDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
 func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
@@ -85,11 +85,12 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 		listItems[i] = articleItem{a}
 	}
 
-	listWidth := width / 2
+	listWidth := width * 35 / 100
 	contentHeight := height - 5
+	listHeight := ((contentHeight - 1) / 3) * 3 // snap to item stride (height:2 + spacing:1)
 
 	delegate := articlesDelegate{width: listWidth}
-	l := list.New(listItems, delegate, listWidth, contentHeight)
+	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
@@ -103,7 +104,7 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 	fi.Prompt = "> "
 
 	detailWidth := width - listWidth
-	vp := viewport.New(detailWidth, contentHeight)
+	vp := viewport.New(detailWidth, contentHeight-1)
 
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
@@ -215,12 +216,12 @@ func (m *articlesModel) applyFilter() {
 }
 
 func (m articlesModel) View() string {
-	listWidth := m.width / 2
+	listWidth := m.width * 35 / 100
 	detailWidth := m.width - listWidth
 
 	var filterBar string
 	if m.filtering {
-		filterBar = styleFilterPrompt.Render("> ") + m.filter.View()
+		filterBar = m.filter.View()
 	} else if m.filter.Value() != "" {
 		filterBar = styleFilterPrompt.Render("> ") + styleFilterText.Render(m.filter.Value())
 	} else {
@@ -245,14 +246,15 @@ func (m articlesModel) SelectedURL() string {
 func (m *articlesModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	listWidth := width / 2
+	listWidth := width * 35 / 100
 	detailWidth := width - listWidth
 	contentHeight := height - 5
+	listHeight := contentHeight - 1
 	d := articlesDelegate{width: listWidth}
 	m.list.SetDelegate(d)
-	m.list.SetSize(listWidth, contentHeight)
+	m.list.SetSize(listWidth, listHeight)
 	m.detail.Width = detailWidth
-	m.detail.Height = contentHeight
+	m.detail.Height = contentHeight - 1
 	if m.renderer != nil {
 		m.renderer, _ = glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),

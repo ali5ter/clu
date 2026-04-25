@@ -27,7 +27,7 @@ func (i catalogItem) FilterValue() string {
 type catalogDelegate struct{ width int }
 
 func (d catalogDelegate) Height() int                             { return 2 }
-func (d catalogDelegate) Spacing() int                            { return 0 }
+func (d catalogDelegate) Spacing() int                            { return 1 }
 func (d catalogDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
 func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
@@ -39,8 +39,8 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 
 	score := fmt.Sprintf("%.2f", ci.Score)
 	scoreStr := scoreStyle(ci.Score).Render(score)
-	// nameWidth = total - indicator(1) - space(1) - score(4) - space(1)
-	nameWidth := d.width - 7
+	// nameWidth = total - indicator(1) - space(1) - name - space(1) - score(4) - gap(1)
+	nameWidth := d.width - 8
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
@@ -63,7 +63,7 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
+		line2 = "  " + styleCopper.Render("↳ ") + styleDetailMuted.Width(metaWidth-2).Render(meta)
 	} else {
 		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
 	}
@@ -100,11 +100,12 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 		listItems[i] = catalogItem{it}
 	}
 
-	listWidth := width / 2
-	contentHeight := height - 5 // header(1) sep(1) filter(1) sep(1) status(1)
+	listWidth := width * 35 / 100
+	contentHeight := height - 5 // header(1) sep(1) content sep(1) status(1)
+	listHeight := ((contentHeight - 1) / 3) * 3 // snap to item stride (height:2 + spacing:1)
 
 	delegate := catalogDelegate{width: listWidth}
-	l := list.New(listItems, delegate, listWidth, contentHeight)
+	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
@@ -117,7 +118,7 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
 
-	vp := viewport.New(width-listWidth, contentHeight)
+	vp := viewport.New(width-listWidth, contentHeight-1)
 
 	m := catalogModel{
 		list:   l,
@@ -150,8 +151,12 @@ func (m *catalogModel) updateDetail() {
 		sb.WriteString(styleDetailLabel.Render(k+":") + "  " + styleDetailValue.Render(v) + "\n")
 	}
 
+	sepWidth := m.detail.Width - 2
+	if sepWidth < 1 {
+		sepWidth = 1
+	}
 	sb.WriteString(styleSelected.Render(it.Name) + "\n")
-	sb.WriteString(styleDim.Render(strings.Repeat("─", 40)) + "\n\n")
+	sb.WriteString(styleDim.Render(strings.Repeat("─", sepWidth)) + "\n\n")
 	sb.WriteString(styleDetailValue.Render(it.Summary) + "\n\n")
 	label("Score", scoreStyle(it.Score).Render(fmt.Sprintf("%.2f", it.Score)))
 	label("Confidence", fmt.Sprintf("%.2f", it.Confidence))
@@ -233,12 +238,12 @@ func (m *catalogModel) applyFilter() {
 }
 
 func (m catalogModel) View() string {
-	listWidth := m.width / 2
+	listWidth := m.width * 35 / 100
 	detailWidth := m.width - listWidth
 
 	var filterBar string
 	if m.filtering {
-		filterBar = styleFilterPrompt.Render("> ") + m.filter.View()
+		filterBar = m.filter.View()
 	} else if m.filter.Value() != "" {
 		filterBar = styleFilterPrompt.Render("> ") + styleFilterText.Render(m.filter.Value())
 	} else {
@@ -265,12 +270,13 @@ func (m catalogModel) SelectedJSON() *api.CatalogItem { return m.selectedItem() 
 func (m *catalogModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	listWidth := width / 2
+	listWidth := width * 35 / 100
 	contentHeight := height - 5
+	listHeight := contentHeight - 1
 	d := catalogDelegate{width: listWidth}
 	m.list.SetDelegate(d)
-	m.list.SetSize(listWidth, contentHeight)
+	m.list.SetSize(listWidth, listHeight)
 	m.detail.Width = width - listWidth
-	m.detail.Height = contentHeight
+	m.detail.Height = contentHeight - 1
 	m.updateDetail()
 }

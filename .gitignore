@@ -1,0 +1,19 @@
+# Binaries
+clu
+dist/
+
+# Go
+*.test
+*.out
+
+# macOS
+.DS_Store
+
+# Environment / secrets
+.env
+*.env.local
+
+# Editor
+.idea/
+.vscode/
+*.swp
