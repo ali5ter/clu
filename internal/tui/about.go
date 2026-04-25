@@ -36,8 +36,7 @@ func (m aboutModel) render() string {
 	var sb strings.Builder
 
 	section := func(title string) {
-		sb.WriteString("\n" + styleDetailLabel.Render(strings.ToUpper(title)) + "\n")
-		sb.WriteString(styleDetailMuted.Render(strings.Repeat("─", 40)) + "\n")
+		sb.WriteString("\n" + styleSteel.Render(title) + "\n\n")
 	}
 	line := func(label, value string) {
 		sb.WriteString(fmt.Sprintf("  %s  %s\n",

@@ -69,4 +69,8 @@ var (
 	styleTabInactive = lipgloss.NewStyle().
 				Foreground(colorMuted).
 				Padding(0, 1)
+
+	styleSteel = lipgloss.NewStyle().
+			Foreground(colorSteel).
+			Bold(true)
 )

@@ -193,7 +193,7 @@ func (m catalogModel) View() string {
 		),
 	)
 
-	detailPane := lipgloss.NewStyle().Width(detailWidth).Render(m.detail.View())
+	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listPane, detailPane)
 }

@@ -3,25 +3,29 @@ package tui
 import "github.com/charmbracelet/bubbles/key"
 
 type keyMap struct {
-	Up       key.Binding
-	Down     key.Binding
-	Filter   key.Binding
-	Open     key.Binding
-	JSON     key.Binding
-	TabNext  key.Binding
-	TabPrev  key.Binding
-	Help     key.Binding
-	Quit     key.Binding
+	Up         key.Binding
+	Down       key.Binding
+	ScrollUp   key.Binding
+	ScrollDown key.Binding
+	Filter     key.Binding
+	Open       key.Binding
+	JSON       key.Binding
+	TabNext    key.Binding
+	TabPrev    key.Binding
+	Help       key.Binding
+	Quit       key.Binding
 }
 
 var keys = keyMap{
-	Up:      key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
-	Down:    key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
-	Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
-	Open:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
-	JSON:    key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("^J", "json")),
-	TabNext: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next tab")),
-	TabPrev: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev tab")),
-	Help:    key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-	Quit:    key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+	Up:         key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
+	Down:       key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
+	ScrollUp:   key.NewBinding(key.WithKeys("pgup", "ctrl+u"), key.WithHelp("pgup", "scroll up")),
+	ScrollDown: key.NewBinding(key.WithKeys("pgdown", "ctrl+d"), key.WithHelp("pgdn", "scroll down")),
+	Filter:     key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+	Open:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
+	JSON:       key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("^J", "json")),
+	TabNext:    key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next tab")),
+	TabPrev:    key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev tab")),
+	Help:       key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+	Quit:       key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 }

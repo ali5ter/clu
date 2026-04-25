@@ -93,6 +93,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			return m, nil
+
+		case key.Matches(msg, keys.ScrollUp):
+			if m.activeTab == tabAbout {
+				m.about.viewport.LineUp(5)
+				return m, nil
+			}
+		case key.Matches(msg, keys.ScrollDown):
+			if m.activeTab == tabAbout {
+				m.about.viewport.LineDown(5)
+				return m, nil
+			}
 		}
 	}
 
@@ -160,6 +171,7 @@ func (m Model) statusView() string {
 		styleStatusKey.Render("/") + " filter",
 		styleStatusKey.Render("enter") + " open",
 		styleStatusKey.Render("^J") + " json",
+		styleStatusKey.Render("pgup/dn") + " scroll",
 		styleStatusKey.Render("tab") + " switch",
 		styleStatusKey.Render("q") + " quit",
 	}

@@ -142,6 +142,10 @@ func (m articlesModel) Update(msg tea.Msg) (articlesModel, tea.Cmd) {
 			m.list, cmd = m.list.Update(msg)
 			cmds = append(cmds, cmd)
 			m.updateDetail()
+		case key.Matches(msg, keys.ScrollUp):
+			m.detail.LineUp(5)
+		case key.Matches(msg, keys.ScrollDown):
+			m.detail.LineDown(5)
 		}
 	}
 
@@ -184,7 +188,7 @@ func (m articlesModel) View() string {
 		),
 	)
 
-	detailPane := lipgloss.NewStyle().Width(detailWidth).Render(m.detail.View())
+	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listPane, detailPane)
 }
