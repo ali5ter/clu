@@ -44,6 +44,7 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	delegate.Styles.SelectedDesc = styleDetailMuted
 	delegate.Styles.NormalTitle = styleNormal
 	delegate.Styles.NormalDesc = styleDetailMuted
+	delegate.SetSpacing(0)
 
 	listWidth := width / 2
 	listHeight := height - 4 // header + filter + status bar
@@ -51,7 +52,9 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
-	l.SetFilteringEnabled(false) // we handle filtering via our own textinput
+	l.SetShowStatusBar(false)
+	l.SetShowPagination(false)
+	l.SetFilteringEnabled(false)
 
 	fi := textinput.New()
 	fi.Placeholder = "filter…"
@@ -93,7 +96,7 @@ func (m *catalogModel) updateDetail() {
 	}
 
 	sb.WriteString(styleSelected.Render(it.Name) + "\n")
-	sb.WriteString(strings.Repeat("─", m.detail.Width) + "\n\n")
+	sb.WriteString(styleDetailMuted.Render(strings.Repeat("─", 40)) + "\n\n")
 	sb.WriteString(styleDetailValue.Render(it.Summary) + "\n\n")
 	label("Score", fmt.Sprintf("%.2f", it.Score))
 	label("Confidence", fmt.Sprintf("%.2f", it.Confidence))

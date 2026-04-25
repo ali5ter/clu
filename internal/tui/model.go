@@ -8,10 +8,22 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ali5ter/clu/internal/api"
 )
+
+// FetchFn is the signature for the data-loading function passed to Run.
+type FetchFn func() ([]api.CatalogItem, []api.Article, *api.About, error)
+
+// dataMsg carries loaded data back into the model.
+type dataMsg struct {
+	catalog  []api.CatalogItem
+	articles []api.Article
+	about    *api.About
+	err      error
+}
 
 type tab int
 
@@ -33,27 +45,35 @@ type Model struct {
 	width     int
 	height    int
 
-	catalogItems  []api.CatalogItem
-	articleItems  []api.Article
-	aboutData     *api.About
+	catalogItems []api.CatalogItem
+	articleItems []api.Article
+
+	loading bool
+	spinner spinner.Model
+	fetch   FetchFn
+	err     error
 }
 
-// New constructs the top-level model with fetched data.
-func New(catalog []api.CatalogItem, articles []api.Article, about *api.About, width, height int) Model {
+func newLoadingModel(fetch FetchFn) Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(colorGreen)
 	return Model{
-		catalog:      newCatalogModel(catalog, width, height),
-		articles:     newArticlesModel(articles, width, height),
-		about:        newAboutModel(about, width, height),
-		catalogItems: catalog,
-		articleItems: articles,
-		aboutData:    about,
-		width:        width,
-		height:       height,
+		loading: true,
+		spinner: s,
+		fetch:   fetch,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(m.spinner.Tick, m.loadData())
+}
+
+func (m Model) loadData() tea.Cmd {
+	return func() tea.Msg {
+		catalog, articles, about, err := m.fetch()
+		return dataMsg{catalog: catalog, articles: articles, about: about, err: err}
+	}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -61,16 +81,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.catalog.SetSize(msg.Width, msg.Height)
-		m.articles.SetSize(msg.Width, msg.Height)
-		m.about.SetSize(msg.Width, msg.Height)
+		if !m.loading {
+			m.catalog.SetSize(msg.Width, msg.Height)
+			m.articles.SetSize(msg.Width, msg.Height)
+			m.about.SetSize(msg.Width, msg.Height)
+		}
+		return m, nil
+
+	case dataMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			m.loading = false
+			return m, nil
+		}
+		m.catalogItems = msg.catalog
+		m.articleItems = msg.articles
+		m.catalog = newCatalogModel(msg.catalog, m.width, m.height)
+		m.articles = newArticlesModel(msg.articles, m.width, m.height)
+		m.about = newAboutModel(msg.about, m.width, m.height)
+		m.loading = false
+		return m, nil
+
+	case spinner.TickMsg:
+		if m.loading {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
 		return m, nil
 
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keys.Quit):
+		if key.Matches(msg, keys.Quit) {
 			return m, tea.Quit
+		}
+		if m.loading || m.err != nil {
+			return m, nil
+		}
 
+		switch {
 		case key.Matches(msg, keys.TabNext):
 			m.activeTab = (m.activeTab + 1) % tab(len(tabNames))
 			return m, nil
@@ -80,15 +128,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, keys.Open):
-			url := m.activeURL()
-			if url != "" {
+			if url := m.activeURL(); url != "" {
 				openBrowser(url)
 			}
 			return m, nil
 
 		case key.Matches(msg, keys.JSON):
 			if m.activeTab == tabCatalog {
-				if it := m.catalog.SelectedJSON(); it != nil {
+				if m.catalog.SelectedJSON() != nil {
 					return m, tea.Quit
 				}
 			}
@@ -107,6 +154,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.loading {
+		return m, nil
+	}
+
 	var cmd tea.Cmd
 	switch m.activeTab {
 	case tabCatalog:
@@ -120,10 +171,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	header := m.headerView()
-	content := m.contentView()
-	status := m.statusView()
-	return lipgloss.JoinVertical(lipgloss.Left, header, content, status)
+	if m.err != nil {
+		return lipgloss.NewStyle().
+			Foreground(colorCopper).
+			Padding(1, 2).
+			Render(fmt.Sprintf("Error loading data: %v\n\nPress q to quit.", m.err))
+	}
+	if m.loading {
+		return m.loadingView()
+	}
+	return lipgloss.JoinVertical(lipgloss.Left,
+		m.headerView(),
+		m.contentView(),
+		m.statusView(),
+	)
+}
+
+func (m Model) loadingView() string {
+	// Site-palette gradient banner — cyan → blue-violet → magenta
+	c1 := lipgloss.NewStyle().Foreground(lipgloss.Color("#50d2ff"))
+	c2 := lipgloss.NewStyle().Foreground(lipgloss.Color("#8c96ff"))
+	c3 := lipgloss.NewStyle().Foreground(lipgloss.Color("#b464ff"))
+	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("#646478"))
+
+	banner := strings.Join([]string{
+		c1.Render(" _____  _     _   _ "),
+		c1.Render("/  __ \\| |   | | | |"),
+		c2.Render("| /  \\/| |   | | | |"),
+		c2.Render("| |    | |   | | | |"),
+		c3.Render("| \\__/\\| |___| |_| |"),
+		c3.Render(" \\____/\\_____/\\___/ "),
+		dim.Render(" commandlineuser.com"),
+	}, "\n")
+
+	status := lipgloss.NewStyle().
+		Foreground(colorMuted).
+		Render(m.spinner.View() + " fetching catalog…")
+
+	content := lipgloss.JoinVertical(lipgloss.Center, banner, "", status)
+
+	return lipgloss.Place(
+		m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		content,
+	)
 }
 
 func (m Model) headerView() string {
@@ -171,7 +262,7 @@ func (m Model) statusView() string {
 		styleStatusKey.Render("/") + " filter",
 		styleStatusKey.Render("enter") + " open",
 		styleStatusKey.Render("^J") + " json",
-		styleStatusKey.Render("pgup/dn") + " scroll",
+		styleStatusKey.Render("⇧↑↓") + " scroll",
 		styleStatusKey.Render("tab") + " switch",
 		styleStatusKey.Render("q") + " quit",
 	}
@@ -205,9 +296,9 @@ func openBrowser(url string) {
 	exec.Command(cmd, args...).Start() //nolint:errcheck
 }
 
-// Run starts the Bubble Tea program and returns the final model.
-func Run(catalog []api.CatalogItem, articles []api.Article, about *api.About) (*Model, error) {
-	m := New(catalog, articles, about, 0, 0)
+// Run starts the Bubble Tea program with async data loading and returns the final model.
+func Run(fetch FetchFn) (*Model, error) {
+	m := newLoadingModel(fetch)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {

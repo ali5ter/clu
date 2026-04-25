@@ -19,8 +19,8 @@ type keyMap struct {
 var keys = keyMap{
 	Up:         key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
 	Down:       key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
-	ScrollUp:   key.NewBinding(key.WithKeys("pgup", "ctrl+u"), key.WithHelp("pgup", "scroll up")),
-	ScrollDown: key.NewBinding(key.WithKeys("pgdown", "ctrl+d"), key.WithHelp("pgdn", "scroll down")),
+	ScrollUp:   key.NewBinding(key.WithKeys("shift+up"), key.WithHelp("⇧↑", "scroll up")),
+	ScrollDown: key.NewBinding(key.WithKeys("shift+down"), key.WithHelp("⇧↓", "scroll down")),
 	Filter:     key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
 	Open:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
 	JSON:       key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("^J", "json")),

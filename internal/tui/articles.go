@@ -46,6 +46,7 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 	delegate.Styles.SelectedDesc = styleDetailMuted
 	delegate.Styles.NormalTitle = styleNormal
 	delegate.Styles.NormalDesc = styleDetailMuted
+	delegate.SetSpacing(0)
 
 	listWidth := width / 2
 	contentHeight := height - 4
@@ -53,6 +54,8 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 	l := list.New(listItems, delegate, listWidth, contentHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
+	l.SetShowStatusBar(false)
+	l.SetShowPagination(false)
 	l.SetFilteringEnabled(false)
 
 	fi := textinput.New()

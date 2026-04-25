@@ -48,18 +48,19 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	client := api.NewClient()
 
-	catalog, articles, about, err := loadData(client)
-	if err != nil {
-		return err
-	}
-
-	// Pipeline mode: --json flag or stdout not a TTY
+	// Pipeline mode: --json flag or stdout not a TTY — load data synchronously
 	if flagJSON || flagNoTTY || !isTTY() {
+		catalog, _, _, err := loadData(client)
+		if err != nil {
+			return err
+		}
 		return pipeline.EmitCatalog(catalog)
 	}
 
-	// TUI mode
-	finalModel, err := tui.Run(catalog, articles, about)
+	// TUI mode — pass fetch function so TUI can show loading screen
+	finalModel, err := tui.Run(func() ([]api.CatalogItem, []api.Article, *api.About, error) {
+		return loadData(client)
+	})
 	if err != nil {
 		return err
 	}
