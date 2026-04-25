@@ -23,7 +23,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-brews:
+homebrew:
   - name: clu
     repository:
       owner: ali5ter
