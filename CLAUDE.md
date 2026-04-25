@@ -150,3 +150,24 @@ Tabs or key bindings switch between Catalog / Articles / About views.
 - Bubbles list: <https://github.com/charmbracelet/bubbles/tree/master/list>
 - GoReleaser: <https://goreleaser.com>
 - Bash source (functional spec): `../command-line-user-site/clu`
+
+---
+
+## Standards Audit — 2026-04-25
+
+Issues generated from `/audit-standards` review against `~/.claude/CLAUDE.md`.
+Suggested fix order:
+
+### Group 1 — Correctness (fix first)
+
+- [#1](https://github.com/ali5ter/clu/issues/1): markdown: add `.markdownlint.json` configuration
+- [#2](https://github.com/ali5ter/clu/issues/2): markdown: fix lint errors in `README.md`
+- [#3](https://github.com/ali5ter/clu/issues/3): markdown: fix lint errors in `CLAUDE.md`
+
+### Group 2 — Standards Compliance
+
+- [#4](https://github.com/ali5ter/clu/issues/4): bash: add Google-Style header docs to `run_vhs.sh`
+
+### Group 3 — Quality Improvements
+
+- [#5](https://github.com/ali5ter/clu/issues/5): bash: replace `echo` with `pfb` in `run_vhs.sh`
