@@ -73,4 +73,10 @@ var (
 	styleSteel = lipgloss.NewStyle().
 			Foreground(colorSteel).
 			Bold(true)
+
+	styleCopper = lipgloss.NewStyle().
+			Foreground(colorCopper)
+
+	styleDim = lipgloss.NewStyle().
+			Foreground(colorLine)
 )

@@ -180,9 +180,12 @@ func (m Model) View() string {
 	if m.loading {
 		return m.loadingView()
 	}
+	sep := styleDim.Render(strings.Repeat("─", m.width))
 	return lipgloss.JoinVertical(lipgloss.Left,
 		m.headerView(),
+		sep,
 		m.contentView(),
+		sep,
 		m.statusView(),
 	)
 }

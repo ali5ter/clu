@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -14,14 +15,57 @@ import (
 	"github.com/ali5ter/clu/internal/api"
 )
 
-type articleItem struct {
-	api.Article
-}
+type articleItem struct{ api.Article }
 
 func (i articleItem) Title() string       { return i.Article.Title }
-func (i articleItem) Description() string { return i.Published }
+func (i articleItem) Description() string { return "" }
 func (i articleItem) FilterValue() string {
 	return i.Article.Title + " " + strings.Join(i.Tags, " ")
+}
+
+type articlesDelegate struct{ width int }
+
+func (d articlesDelegate) Height() int                             { return 2 }
+func (d articlesDelegate) Spacing() int                            { return 0 }
+func (d articlesDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+
+func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	ai, ok := item.(articleItem)
+	if !ok {
+		return
+	}
+	selected := index == m.Index()
+
+	titleWidth := d.width - 2
+	var indicator, title string
+	if selected {
+		indicator = styleCopper.Render("▶")
+		title = styleSelected.Width(titleWidth).Render(ai.Article.Title)
+	} else {
+		indicator = " "
+		title = styleNormal.Width(titleWidth).Render(ai.Article.Title)
+	}
+	line1 := fmt.Sprintf("%s %s", indicator, title)
+
+	tags := ""
+	if len(ai.Tags) > 0 {
+		t := ai.Tags
+		if len(t) > 3 {
+			t = t[:3]
+		}
+		tags = " · " + strings.Join(t, ", ")
+	}
+	meta := ai.Published + tags
+	metaWidth := d.width - 2
+	var line2 string
+	if selected {
+		line2 = "  " + styleCopper.Render("↳ ") + styleDetailMuted.Width(metaWidth-2).Render(meta)
+	} else {
+		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
+	}
+
+	fmt.Fprintln(w, line1)
+	fmt.Fprint(w, line2)
 }
 
 type articlesModel struct {
@@ -41,16 +85,10 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 		listItems[i] = articleItem{a}
 	}
 
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.SelectedTitle = styleSelected
-	delegate.Styles.SelectedDesc = styleDetailMuted
-	delegate.Styles.NormalTitle = styleNormal
-	delegate.Styles.NormalDesc = styleDetailMuted
-	delegate.SetSpacing(0)
-
 	listWidth := width / 2
-	contentHeight := height - 4
+	contentHeight := height - 5
 
+	delegate := articlesDelegate{width: listWidth}
 	l := list.New(listItems, delegate, listWidth, contentHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
@@ -64,11 +102,12 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
 
-	vp := viewport.New(width-listWidth, contentHeight)
+	detailWidth := width - listWidth
+	vp := viewport.New(detailWidth, contentHeight)
 
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(width-listWidth-2),
+		glamour.WithWordWrap(detailWidth-2),
 	)
 
 	m := articlesModel{
@@ -98,8 +137,11 @@ func (m *articlesModel) updateDetail() {
 		return
 	}
 
-	meta := fmt.Sprintf("**%s**\n\n_%s_ · %s\n\n---\n\n",
-		a.Title, a.Published, strings.Join(a.Tags, ", "))
+	meta := fmt.Sprintf("**%s**\n\n_%s_", a.Title, a.Published)
+	if len(a.Tags) > 0 {
+		meta += " · " + strings.Join(a.Tags, ", ")
+	}
+	meta += "\n\n---\n\n"
 
 	rendered, err := m.renderer.Render(meta + a.Body)
 	if err != nil {
@@ -176,21 +218,18 @@ func (m articlesModel) View() string {
 	listWidth := m.width / 2
 	detailWidth := m.width - listWidth
 
-	filterBar := styleFilterPrompt.Render("> ") + m.filter.View()
-	if !m.filtering {
-		filterBar = styleDetailMuted.Render("> " + m.filter.Value())
-		if m.filter.Value() == "" {
-			filterBar = styleDetailMuted.Render("> filter…")
-		}
+	var filterBar string
+	if m.filtering {
+		filterBar = styleFilterPrompt.Render("> ") + m.filter.View()
+	} else if m.filter.Value() != "" {
+		filterBar = styleFilterPrompt.Render("> ") + styleFilterText.Render(m.filter.Value())
+	} else {
+		filterBar = styleDim.Render("> filter…")
 	}
 
 	listPane := stylePanelBorder.Width(listWidth).Render(
-		lipgloss.JoinVertical(lipgloss.Left,
-			filterBar,
-			m.list.View(),
-		),
+		lipgloss.JoinVertical(lipgloss.Left, filterBar, m.list.View()),
 	)
-
 	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listPane, detailPane)
@@ -207,14 +246,17 @@ func (m *articlesModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	listWidth := width / 2
-	contentHeight := height - 4
+	detailWidth := width - listWidth
+	contentHeight := height - 5
+	d := articlesDelegate{width: listWidth}
+	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, contentHeight)
-	m.detail.Width = width - listWidth
+	m.detail.Width = detailWidth
 	m.detail.Height = contentHeight
 	if m.renderer != nil {
 		m.renderer, _ = glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
-			glamour.WithWordWrap(width-listWidth-2),
+			glamour.WithWordWrap(detailWidth-2),
 		)
 	}
 	m.updateDetail()

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -14,22 +15,82 @@ import (
 )
 
 // catalogItem wraps api.CatalogItem to implement list.Item.
-type catalogItem struct {
-	api.CatalogItem
-}
+type catalogItem struct{ api.CatalogItem }
 
 func (i catalogItem) Title() string       { return i.Name }
-func (i catalogItem) Description() string { return fmt.Sprintf("%.2f  %s", i.Score, i.Category) }
-func (i catalogItem) FilterValue() string { return i.Name + " " + i.Category + " " + strings.Join(i.Tags, " ") }
+func (i catalogItem) Description() string { return "" }
+func (i catalogItem) FilterValue() string {
+	return i.Name + " " + i.Category + " " + strings.Join(i.Tags, " ")
+}
+
+// catalogDelegate is a custom list delegate for rich item rendering.
+type catalogDelegate struct{ width int }
+
+func (d catalogDelegate) Height() int                             { return 2 }
+func (d catalogDelegate) Spacing() int                            { return 0 }
+func (d catalogDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+
+func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	ci, ok := item.(catalogItem)
+	if !ok {
+		return
+	}
+	selected := index == m.Index()
+
+	score := fmt.Sprintf("%.2f", ci.Score)
+	scoreStr := scoreStyle(ci.Score).Render(score)
+	// nameWidth = total - indicator(1) - space(1) - score(4) - space(1)
+	nameWidth := d.width - 7
+	if nameWidth < 1 {
+		nameWidth = 1
+	}
+
+	var indicator, name string
+	if selected {
+		indicator = styleCopper.Render("▶")
+		name = styleSelected.Width(nameWidth).Render(ci.Name)
+	} else {
+		indicator = " "
+		name = styleNormal.Width(nameWidth).Render(ci.Name)
+	}
+
+	line1 := fmt.Sprintf("%s %s %s", indicator, name, scoreStr)
+
+	meta := ci.Category + " · " + ci.SourceType + " · " + ci.Maturity
+	if ci.IsNew {
+		meta = "✦ " + meta
+	}
+	metaWidth := d.width - 2
+	var line2 string
+	if selected {
+		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
+	} else {
+		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
+	}
+
+	fmt.Fprintln(w, line1)
+	fmt.Fprint(w, line2)
+}
+
+func scoreStyle(score float64) lipgloss.Style {
+	switch {
+	case score >= 9.0:
+		return lipgloss.NewStyle().Foreground(colorGreen).Bold(true)
+	case score >= 8.5:
+		return lipgloss.NewStyle().Foreground(colorSteel)
+	default:
+		return lipgloss.NewStyle().Foreground(colorMuted)
+	}
+}
 
 // catalogModel is the catalog tab view.
 type catalogModel struct {
-	list     list.Model
-	filter   textinput.Model
-	detail   viewport.Model
-	items    []api.CatalogItem
-	width    int
-	height   int
+	list      list.Model
+	filter    textinput.Model
+	detail    viewport.Model
+	items     []api.CatalogItem
+	width     int
+	height    int
 	filtering bool
 }
 
@@ -39,17 +100,11 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 		listItems[i] = catalogItem{it}
 	}
 
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.SelectedTitle = styleSelected
-	delegate.Styles.SelectedDesc = styleDetailMuted
-	delegate.Styles.NormalTitle = styleNormal
-	delegate.Styles.NormalDesc = styleDetailMuted
-	delegate.SetSpacing(0)
-
 	listWidth := width / 2
-	listHeight := height - 4 // header + filter + status bar
+	contentHeight := height - 5 // header(1) sep(1) filter(1) sep(1) status(1)
 
-	l := list.New(listItems, delegate, listWidth, listHeight)
+	delegate := catalogDelegate{width: listWidth}
+	l := list.New(listItems, delegate, listWidth, contentHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
@@ -62,7 +117,7 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
 
-	vp := viewport.New(width-listWidth, listHeight)
+	vp := viewport.New(width-listWidth, contentHeight)
 
 	m := catalogModel{
 		list:   l,
@@ -96,9 +151,9 @@ func (m *catalogModel) updateDetail() {
 	}
 
 	sb.WriteString(styleSelected.Render(it.Name) + "\n")
-	sb.WriteString(styleDetailMuted.Render(strings.Repeat("─", 40)) + "\n\n")
+	sb.WriteString(styleDim.Render(strings.Repeat("─", 40)) + "\n\n")
 	sb.WriteString(styleDetailValue.Render(it.Summary) + "\n\n")
-	label("Score", fmt.Sprintf("%.2f", it.Score))
+	label("Score", scoreStyle(it.Score).Render(fmt.Sprintf("%.2f", it.Score)))
 	label("Confidence", fmt.Sprintf("%.2f", it.Confidence))
 	label("Maturity", it.Maturity)
 	label("Maintenance", it.Maintenance)
@@ -181,27 +236,23 @@ func (m catalogModel) View() string {
 	listWidth := m.width / 2
 	detailWidth := m.width - listWidth
 
-	filterBar := styleFilterPrompt.Render("> ") + m.filter.View()
-	if !m.filtering {
-		filterBar = styleDetailMuted.Render("> " + m.filter.Value())
-		if m.filter.Value() == "" {
-			filterBar = styleDetailMuted.Render("> filter…")
-		}
+	var filterBar string
+	if m.filtering {
+		filterBar = styleFilterPrompt.Render("> ") + m.filter.View()
+	} else if m.filter.Value() != "" {
+		filterBar = styleFilterPrompt.Render("> ") + styleFilterText.Render(m.filter.Value())
+	} else {
+		filterBar = styleDim.Render("> filter…")
 	}
 
 	listPane := stylePanelBorder.Width(listWidth).Render(
-		lipgloss.JoinVertical(lipgloss.Left,
-			filterBar,
-			m.list.View(),
-		),
+		lipgloss.JoinVertical(lipgloss.Left, filterBar, m.list.View()),
 	)
-
 	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listPane, detailPane)
 }
 
-// SelectedURL returns the source URL of the currently selected item.
 func (m catalogModel) SelectedURL() string {
 	if it := m.selectedItem(); it != nil {
 		return it.SourceURL
@@ -209,16 +260,15 @@ func (m catalogModel) SelectedURL() string {
 	return ""
 }
 
-// SelectedJSON returns the selected item for JSON output (nil if nothing selected).
-func (m catalogModel) SelectedJSON() *api.CatalogItem {
-	return m.selectedItem()
-}
+func (m catalogModel) SelectedJSON() *api.CatalogItem { return m.selectedItem() }
 
 func (m *catalogModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	listWidth := width / 2
-	contentHeight := height - 4
+	contentHeight := height - 5
+	d := catalogDelegate{width: listWidth}
+	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, contentHeight)
 	m.detail.Width = width - listWidth
 	m.detail.Height = contentHeight

@@ -6,6 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	wrap "github.com/muesli/reflow/wordwrap"
 	"github.com/ali5ter/clu/internal/api"
 )
 
@@ -17,13 +19,8 @@ type aboutModel struct {
 }
 
 func newAboutModel(about *api.About, width, height int) aboutModel {
-	vp := viewport.New(width, height-4)
-	m := aboutModel{
-		viewport: vp,
-		about:    about,
-		width:    width,
-		height:   height,
-	}
+	vp := viewport.New(width, height-5)
+	m := aboutModel{viewport: vp, about: about, width: width, height: height}
 	m.viewport.SetContent(m.render())
 	return m
 }
@@ -33,35 +30,47 @@ func (m aboutModel) render() string {
 		return styleDetailMuted.Render("No about data available.")
 	}
 	a := m.about
+	wrapWidth := m.viewport.Width - 4
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+
 	var sb strings.Builder
 
 	section := func(title string) {
 		sb.WriteString("\n" + styleSteel.Render(title) + "\n\n")
 	}
-	line := func(label, value string) {
+	para := func(text string) {
+		sb.WriteString("  " + styleDetailValue.Render(wrap.String(text, wrapWidth)) + "\n")
+	}
+	muted := func(text string) {
+		sb.WriteString("  " + styleDetailMuted.Render(wrap.String(text, wrapWidth)) + "\n")
+	}
+	link := func(label, value string) {
 		sb.WriteString(fmt.Sprintf("  %s  %s\n",
 			styleDetailLabel.Width(14).Render(label),
-			styleDetailValue.Render(value),
+			styleDetailMuted.Render(value),
 		))
 	}
 
 	section("commandlineuser.com")
-	sb.WriteString("  " + styleDetailValue.Render(a.Site.Description) + "\n")
+	para(a.Site.Description)
 
 	section("About")
 	for _, bio := range a.Author.Bio {
-		sb.WriteString("  " + styleDetailValue.Render(bio) + "\n")
+		para(bio)
 	}
 
 	section("How the catalogue works")
-	sb.WriteString("  " + styleDetailValue.Render(a.Catalogue.Description) + "\n\n")
-	sb.WriteString("  " + styleDetailMuted.Render(a.Catalogue.Curation) + "\n")
+	para(a.Catalogue.Description)
+	sb.WriteString("\n")
+	muted(a.Catalogue.Curation)
 
 	section("Links")
-	line("About:", a.Site.AboutURL)
-	line("Methodology:", a.Site.MethodologyURL)
-	line("Features:", a.Site.FeaturesURL)
-	line("GitHub:", a.Author.Links.GitHub)
+	link("About:", a.Site.AboutURL)
+	link("Methodology:", a.Site.MethodologyURL)
+	link("Features:", a.Site.FeaturesURL)
+	link("GitHub:", a.Author.Links.GitHub)
 
 	return sb.String()
 }
@@ -73,13 +82,13 @@ func (m aboutModel) Update(msg tea.Msg) (aboutModel, tea.Cmd) {
 }
 
 func (m aboutModel) View() string {
-	return m.viewport.View()
+	return lipgloss.NewStyle().Padding(0, 1).Render(m.viewport.View())
 }
 
 func (m *aboutModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.viewport.Width = width
-	m.viewport.Height = height - 4
+	m.viewport.Height = height - 5
 	m.viewport.SetContent(m.render())
 }
