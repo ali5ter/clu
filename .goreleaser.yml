@@ -1,0 +1,43 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/ali5ter/clu/cmd.version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - name: clu
+    repository:
+      owner: ali5ter
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://commandlineuser.com
+    description: A terminal interface for the commandlineuser.com CLI catalogue
+    license: MIT
+    install: |
+      bin.install "clu"
+    test: |
+      system "#{bin}/clu", "--version"
+
+release:
+  github:
+    owner: ali5ter
+    name: clu

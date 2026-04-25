@@ -12,13 +12,16 @@ pipe what you find into whatever you're building.
 
 ## Install
 
+**Homebrew** (macOS and Linux):
+
 ```bash
 brew install ali5ter/tap/clu
 ```
 
-Or grab a binary from the [releases page](https://github.com/ali5ter/clu/releases).
+**Binary** — download a pre-built binary for your platform from the
+[releases page](https://github.com/ali5ter/clu/releases), extract it, and put `clu` on your `PATH`.
 
-If you have Go installed:
+**Go**:
 
 ```bash
 go install github.com/ali5ter/clu@latest
