@@ -23,8 +23,25 @@ brew tap ali5ter/clu
 brew install clu
 ```
 
-**Binary** — download a pre-built binary for your platform from the
-[releases page](https://github.com/ali5ter/clu/releases), extract it, and put `clu` on your `PATH`.
+**Binary** (macOS and Linux, no Go required):
+
+```bash
+# macOS Apple Silicon
+curl -sL https://github.com/ali5ter/clu/releases/latest/download/clu_darwin_arm64.tar.gz | tar -xz
+sudo mv clu /usr/local/bin/
+
+# macOS Intel
+curl -sL https://github.com/ali5ter/clu/releases/latest/download/clu_darwin_amd64.tar.gz | tar -xz
+sudo mv clu /usr/local/bin/
+
+# Linux arm64
+curl -sL https://github.com/ali5ter/clu/releases/latest/download/clu_linux_arm64.tar.gz | tar -xz
+sudo mv clu /usr/local/bin/
+
+# Linux amd64
+curl -sL https://github.com/ali5ter/clu/releases/latest/download/clu_linux_amd64.tar.gz | tar -xz
+sudo mv clu /usr/local/bin/
+```
 
 **Go**:
 

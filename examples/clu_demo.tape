@@ -5,7 +5,7 @@ Source config.tape
 
 Type `clu`
 Enter
-Sleep 6s
+Sleep 7s
 Down
 Sleep 500ms
 Down
