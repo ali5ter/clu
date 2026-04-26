@@ -57,7 +57,8 @@ config/           ~/.config/clu/config.toml loading via Viper
 ### TUI structure (Bubble Tea / Elm architecture)
 
 `internal/tui/model.go` holds the top-level `Model` with a `currentTab` field routing
-`Update` and `View` calls to one of three sub-models:
+`Update` and `View` calls to one of three sub-models. The `jsonMode bool` field is set
+only when Ctrl-J is pressed; `SelectedCatalogItem()` returns nil unless `jsonMode` is true.
 
 - `catalog.go` — list (Bubbles) + detail viewport (Bubbles); left/right split
 - `articles.go` — list + Glamour-rendered markdown viewport
@@ -140,7 +141,7 @@ Tabs or key bindings switch between Catalog / Articles / About views.
 2. GitHub Actions pushes tarballs to `commandlineuser.com/releases/` (DreamHost SFTP)
 3. `releases/version.json` updated with latest version string
 4. `commandlineuser.com/install` detects platform and installs binary
-5. GoReleaser updates `ali5ter/homebrew-tap` formula automatically
+5. GoReleaser updates `ali5ter/homebrew-clu` formula automatically via `HOMEBREW_TAP_TOKEN` secret
 
 ---
 
