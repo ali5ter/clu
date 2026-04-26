@@ -48,10 +48,11 @@ type Model struct {
 	catalogItems []api.CatalogItem
 	articleItems []api.Article
 
-	loading bool
-	spinner spinner.Model
-	fetch   FetchFn
-	err     error
+	loading  bool
+	spinner  spinner.Model
+	fetch    FetchFn
+	err      error
+	jsonMode bool // true only when user pressed ^J
 }
 
 func newLoadingModel(fetch FetchFn) Model {
@@ -136,6 +137,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.JSON):
 			if m.activeTab == tabCatalog {
 				if m.catalog.SelectedJSON() != nil {
+					m.jsonMode = true
 					return m, tea.Quit
 				}
 			}
@@ -282,8 +284,11 @@ func (m Model) activeURL() string {
 	return ""
 }
 
-// SelectedCatalogItem returns the currently selected catalog item (for ^J JSON output).
+// SelectedCatalogItem returns the item to emit as JSON, or nil if ^J was not pressed.
 func (m Model) SelectedCatalogItem() *api.CatalogItem {
+	if !m.jsonMode {
+		return nil
+	}
 	return m.catalog.SelectedJSON()
 }
 

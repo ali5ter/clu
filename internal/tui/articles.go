@@ -59,7 +59,7 @@ func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleCopper.Render("↳ ") + styleDetailMuted.Width(metaWidth-2).Render(meta)
+		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
 	} else {
 		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
 	}
@@ -87,14 +87,14 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 
 	listWidth := width * 35 / 100
 	contentHeight := height - 5
-	listHeight := ((contentHeight - 1) / 3) * 3 // snap to item stride (height:2 + spacing:1)
+	itemsHeight := ((contentHeight - 2) / 3) * 3
+	listHeight := itemsHeight + 1
 
 	delegate := articlesDelegate{width: listWidth}
 	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
-	l.SetShowPagination(false)
 	l.SetFilteringEnabled(false)
 
 	fi := textinput.New()
@@ -254,7 +254,8 @@ func (m *articlesModel) SetSize(width, height int) {
 	listWidth := width * 35 / 100
 	detailWidth := width - listWidth
 	contentHeight := height - 5
-	listHeight := contentHeight - 1
+	itemsHeight := ((contentHeight - 2) / 3) * 3
+	listHeight := itemsHeight + 1
 	d := articlesDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)

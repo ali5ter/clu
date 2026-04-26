@@ -63,7 +63,7 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleCopper.Render("↳ ") + styleDetailMuted.Width(metaWidth-2).Render(meta)
+		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
 	} else {
 		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
 	}
@@ -102,14 +102,15 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 
 	listWidth := width * 35 / 100
 	contentHeight := height - 5 // header(1) sep(1) content sep(1) status(1)
-	listHeight := ((contentHeight - 1) / 3) * 3 // snap to item stride (height:2 + spacing:1)
+	// snap items to stride (height:2 + spacing:1 = 3); list widget uses 1 extra row for pagination dots
+	itemsHeight := ((contentHeight - 2) / 3) * 3
+	listHeight := itemsHeight + 1
 
 	delegate := catalogDelegate{width: listWidth}
 	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
-	l.SetShowPagination(false)
 	l.SetFilteringEnabled(false)
 
 	fi := textinput.New()
@@ -277,7 +278,8 @@ func (m *catalogModel) SetSize(width, height int) {
 	m.height = height
 	listWidth := width * 35 / 100
 	contentHeight := height - 5
-	listHeight := contentHeight - 1
+	itemsHeight := ((contentHeight - 2) / 3) * 3
+	listHeight := itemsHeight + 1
 	d := catalogDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)
