@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -12,6 +13,7 @@ const (
 	CatalogURL  = "https://commandlineuser.com/api/catalog.json"
 	ArticlesURL = "https://commandlineuser.com/api/articles.json"
 	AboutURL    = "https://commandlineuser.com/api/about.json"
+	VersionURL  = "https://commandlineuser.com/releases/version.json"
 
 	httpTimeout = 8 * time.Second
 )
@@ -59,4 +61,15 @@ func (c *Client) FetchArticles() ([]Article, error) {
 func (c *Client) FetchAbout() (*About, error) {
 	var about About
 	return &about, c.fetch(AboutURL, &about)
+}
+
+// FetchLatestVersion retrieves the latest published release version, e.g. "1.2.3".
+func (c *Client) FetchLatestVersion() (string, error) {
+	var v struct {
+		Version string `json:"version"`
+	}
+	if err := c.fetch(VersionURL, &v); err != nil {
+		return "", err
+	}
+	return strings.TrimPrefix(v.Version, "v"), nil
 }

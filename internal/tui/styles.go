@@ -2,6 +2,15 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
+// truncate clips s to max runes, appending "…" if trimmed.
+func truncate(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max-1]) + "…"
+}
+
 // Site palette — mirrors commandlineuser.com CSS variables.
 var (
 	colorText   = lipgloss.Color("#e9eff3")

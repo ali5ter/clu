@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -25,6 +26,9 @@ type dataMsg struct {
 	err      error
 }
 
+// versionMsg carries the latest available version string.
+type versionMsg struct{ latest string }
+
 type tab int
 
 const (
@@ -34,6 +38,25 @@ const (
 )
 
 var tabNames = []string{"Catalog", "Articles", "About"}
+
+// Tab-contextual footer animations — all 4 chars wide so the layout stays stable.
+var (
+	// animCatalog: dot bouncing along a track — browsing through a list.
+	animCatalog = spinner.Spinner{
+		Frames: []string{"∘───", "─∘──", "──∘─", "───∘", "──∘─", "─∘──"},
+		FPS:    time.Second / 8,
+	}
+	// animArticles: dots rippling left-to-right — text being read.
+	animArticles = spinner.Spinner{
+		Frames: []string{"·   ", "··  ", "··· ", "····", " ···", "  ··", "   ·", "  ··", " ···", "····", "··· ", "··  "},
+		FPS:    time.Second / 10,
+	}
+	// animAbout: slow heartbeat pulse — quiet, human.
+	animAbout = spinner.Spinner{
+		Frames: []string{"    ", "·   ", "●   ", "·   ", "    ", "    "},
+		FPS:    time.Second / 3,
+	}
+)
 
 // Model is the top-level Bubble Tea model.
 type Model struct {
@@ -48,32 +71,70 @@ type Model struct {
 	catalogItems []api.CatalogItem
 	articleItems []api.Article
 
-	loading  bool
-	spinner  spinner.Model
-	fetch    FetchFn
+	loading     bool
+	spinner     spinner.Model
+	animCatalog  spinner.Model
+	animArticles spinner.Model
+	animAbout    spinner.Model
+	fetch       FetchFn
 	err      error
 	jsonMode bool // true only when user pressed ^J
+
+	currentVersion string
+	latestVersion  string
+	checkVersion   func() string
 }
 
-func newLoadingModel(fetch FetchFn) Model {
+func newLoadingModel(fetch FetchFn, currentVersion string, checkVersion func() string) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(colorGreen)
+
+	ac := spinner.New()
+	ac.Spinner = animCatalog
+	ac.Style = lipgloss.NewStyle().Foreground(colorSteel)
+
+	ar := spinner.New()
+	ar.Spinner = animArticles
+	ar.Style = lipgloss.NewStyle().Foreground(colorSteel)
+
+	ab := spinner.New()
+	ab.Spinner = animAbout
+	ab.Style = lipgloss.NewStyle().Foreground(colorSteel)
+
 	return Model{
-		loading: true,
-		spinner: s,
-		fetch:   fetch,
+		loading:        true,
+		spinner:        s,
+		animCatalog:    ac,
+		animArticles:   ar,
+		animAbout:      ab,
+		fetch:          fetch,
+		currentVersion: currentVersion,
+		checkVersion:   checkVersion,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.loadData())
+	return tea.Batch(
+		m.spinner.Tick,
+		m.animCatalog.Tick, m.animArticles.Tick, m.animAbout.Tick,
+		m.loadData(), m.doVersionCheck(),
+	)
 }
 
 func (m Model) loadData() tea.Cmd {
 	return func() tea.Msg {
 		catalog, articles, about, err := m.fetch()
 		return dataMsg{catalog: catalog, articles: articles, about: about, err: err}
+	}
+}
+
+func (m Model) doVersionCheck() tea.Cmd {
+	if m.checkVersion == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		return versionMsg{latest: m.checkVersion()}
 	}
 }
 
@@ -103,13 +164,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		return m, nil
 
-	case spinner.TickMsg:
-		if m.loading {
-			var cmd tea.Cmd
-			m.spinner, cmd = m.spinner.Update(msg)
-			return m, cmd
-		}
+	case versionMsg:
+		m.latestVersion = msg.latest
 		return m, nil
+
+	case spinner.TickMsg:
+		var c1, c2, c3, c4 tea.Cmd
+		m.spinner, c1 = m.spinner.Update(msg)
+		m.animCatalog, c2 = m.animCatalog.Update(msg)
+		m.animArticles, c3 = m.animArticles.Update(msg)
+		m.animAbout, c4 = m.animAbout.Update(msg)
+		return m, tea.Batch(c1, c2, c3, c4)
 
 	case tea.KeyMsg:
 		if key.Matches(msg, keys.Quit) {
@@ -271,7 +336,38 @@ func (m Model) statusView() string {
 		styleStatusKey.Render("tab") + " switch",
 		styleStatusKey.Render("q") + " quit",
 	}
-	return styleStatusBar.Width(m.width).Render(strings.Join(bindings, "  "))
+	left := strings.Join(bindings, "  ")
+
+	var right string
+	currentNorm := strings.TrimPrefix(m.currentVersion, "v")
+	latestNorm := strings.TrimPrefix(m.latestVersion, "v")
+	if latestNorm != "" && latestNorm != currentNorm {
+		right = lipgloss.NewStyle().
+			Background(colorCopper).
+			Foreground(colorPanel).
+			Padding(0, 1).
+			Render("↑ v" + latestNorm + " available")
+	} else {
+		var anim string
+		switch m.activeTab {
+		case tabCatalog:
+			anim = m.animCatalog.View()
+		case tabArticles:
+			anim = m.animArticles.View()
+		case tabAbout:
+			anim = m.animAbout.View()
+		}
+		right = lipgloss.NewStyle().Foreground(colorSteel).Render(anim)
+	}
+
+	// styleStatusBar has Padding(0,1) so inner content width = m.width - 2
+	contentWidth := m.width - 2
+	gap := contentWidth - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+
+	return styleStatusBar.Width(m.width).Render(left + strings.Repeat(" ", gap) + right)
 }
 
 func (m Model) activeURL() string {
@@ -305,8 +401,8 @@ func openBrowser(url string) {
 }
 
 // Run starts the Bubble Tea program with async data loading and returns the final model.
-func Run(fetch FetchFn) (*Model, error) {
-	m := newLoadingModel(fetch)
+func Run(fetch FetchFn, currentVersion string, checkVersion func() string) (*Model, error) {
+	m := newLoadingModel(fetch, currentVersion, checkVersion)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {

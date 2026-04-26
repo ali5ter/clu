@@ -1,26 +1,36 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	wrap "github.com/muesli/reflow/wordwrap"
 	"github.com/ali5ter/clu/internal/api"
 )
 
 type aboutModel struct {
 	viewport viewport.Model
 	about    *api.About
+	renderer *glamour.TermRenderer
 	width    int
 	height   int
 }
 
 func newAboutModel(about *api.About, width, height int) aboutModel {
 	vp := viewport.New(width, height-5)
-	m := aboutModel{viewport: vp, about: about, width: width, height: height}
+	renderer, _ := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(width-4),
+	)
+	m := aboutModel{
+		viewport: vp,
+		about:    about,
+		renderer: renderer,
+		width:    width,
+		height:   height,
+	}
 	m.viewport.SetContent(m.render())
 	return m
 }
@@ -30,49 +40,34 @@ func (m aboutModel) render() string {
 		return styleDetailMuted.Render("No about data available.")
 	}
 	a := m.about
-	wrapWidth := m.viewport.Width - 4
-	if wrapWidth < 20 {
-		wrapWidth = 20
-	}
-
 	var sb strings.Builder
 
-	section := func(title string) {
-		sb.WriteString("\n" + styleSteel.Render(title) + "\n\n")
-	}
-	para := func(text string) {
-		sb.WriteString("  " + styleDetailValue.Render(wrap.String(text, wrapWidth)) + "\n")
-	}
-	muted := func(text string) {
-		sb.WriteString("  " + styleDetailMuted.Render(wrap.String(text, wrapWidth)) + "\n")
-	}
-	link := func(label, value string) {
-		sb.WriteString(fmt.Sprintf("  %s  %s\n",
-			styleDetailLabel.Width(14).Render(label),
-			styleDetailMuted.Render(value),
-		))
-	}
+	sb.WriteString("# commandlineuser.com\n\n")
+	sb.WriteString(a.Site.Description + "\n\n")
 
-	section("commandlineuser.com")
-	para(a.Site.Description)
-
-	section("About")
+	sb.WriteString("## About\n\n")
 	for _, bio := range a.Author.Bio {
-		para(bio)
+		sb.WriteString(bio + "\n\n")
 	}
 
-	section("How the catalogue works")
-	para(a.Catalogue.Description)
-	sb.WriteString("\n")
-	muted(a.Catalogue.Curation)
+	sb.WriteString("## How the catalogue works\n\n")
+	sb.WriteString(a.Catalogue.Description + "\n\n")
+	sb.WriteString(a.Catalogue.Curation + "\n\n")
 
-	section("Links")
-	link("About:", a.Site.AboutURL)
-	link("Methodology:", a.Site.MethodologyURL)
-	link("Features:", a.Site.FeaturesURL)
-	link("GitHub:", a.Author.Links.GitHub)
+	sb.WriteString("## Links\n\n")
+	sb.WriteString("- [About](" + a.Site.AboutURL + ")\n")
+	sb.WriteString("- [Methodology](" + a.Site.MethodologyURL + ")\n")
+	sb.WriteString("- [Features](" + a.Site.FeaturesURL + ")\n")
+	sb.WriteString("- [GitHub](" + a.Author.Links.GitHub + ")\n")
 
-	return sb.String()
+	if m.renderer == nil {
+		return sb.String()
+	}
+	rendered, err := m.renderer.Render(sb.String())
+	if err != nil {
+		return sb.String()
+	}
+	return rendered
 }
 
 func (m aboutModel) Update(msg tea.Msg) (aboutModel, tea.Cmd) {
@@ -90,5 +85,11 @@ func (m *aboutModel) SetSize(width, height int) {
 	m.height = height
 	m.viewport.Width = width
 	m.viewport.Height = height - 5
+	if m.renderer != nil {
+		m.renderer, _ = glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(width-4),
+		)
+	}
 	m.viewport.SetContent(m.render())
 }

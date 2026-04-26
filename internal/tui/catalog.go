@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	wrap "github.com/muesli/reflow/wordwrap"
 	"github.com/ali5ter/clu/internal/api"
 )
 
@@ -48,10 +49,10 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 	var indicator, name string
 	if selected {
 		indicator = styleCopper.Render("▶")
-		name = styleSelected.Width(nameWidth).Render(ci.Name)
+		name = styleSelected.Width(nameWidth).Render(truncate(ci.Name, nameWidth))
 	} else {
 		indicator = " "
-		name = styleNormal.Width(nameWidth).Render(ci.Name)
+		name = styleNormal.Width(nameWidth).Render(truncate(ci.Name, nameWidth))
 	}
 
 	line1 := fmt.Sprintf("%s %s %s", indicator, name, scoreStr)
@@ -63,9 +64,9 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
+		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
 	} else {
-		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
+		line2 = "  " + styleDim.Width(metaWidth).Render(truncate(meta, metaWidth))
 	}
 
 	fmt.Fprintln(w, line1)
@@ -103,7 +104,8 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	listWidth := width * 35 / 100
 	contentHeight := height - 5 // header(1) sep(1) content sep(1) status(1)
 	// snap items to stride (height:2 + spacing:1 = 3); list widget uses 1 extra row for pagination dots
-	itemsHeight := ((contentHeight - 2) / 3) * 3
+	// subtract 3: filter bar(1) + filter separator(1) + pagination dots(1)
+	itemsHeight := ((contentHeight - 3) / 3) * 3
 	listHeight := itemsHeight + 1
 
 	delegate := catalogDelegate{width: listWidth}
@@ -119,7 +121,7 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
 
-	vp := viewport.New(width-listWidth, contentHeight-1)
+	vp := viewport.New(width-listWidth, contentHeight)
 
 	m := catalogModel{
 		list:   l,
@@ -156,9 +158,13 @@ func (m *catalogModel) updateDetail() {
 	if sepWidth < 1 {
 		sepWidth = 1
 	}
+	wrapWidth := m.detail.Width - 4
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
 	sb.WriteString(styleSelected.Render(it.Name) + "\n")
 	sb.WriteString(styleDim.Render(strings.Repeat("─", sepWidth)) + "\n\n")
-	sb.WriteString(styleDetailValue.Render(it.Summary) + "\n\n")
+	sb.WriteString(styleDetailValue.Render(wrap.String(it.Summary, wrapWidth)) + "\n\n")
 	label("Score", scoreStyle(it.Score).Render(fmt.Sprintf("%.2f", it.Score)))
 	label("Confidence", fmt.Sprintf("%.2f", it.Confidence))
 	label("Maturity", it.Maturity)
@@ -235,7 +241,7 @@ func (m *catalogModel) applyFilter() {
 	var filtered []list.Item
 	for _, it := range m.items {
 		ci := catalogItem{it}
-		if q == "" || strings.Contains(strings.ToLower(ci.FilterValue()+" "+it.Summary), q) {
+		if q == "" || strings.Contains(strings.ToLower(ci.FilterValue()), q) {
 			filtered = append(filtered, ci)
 		}
 	}
@@ -256,8 +262,9 @@ func (m catalogModel) View() string {
 		filterBar = styleDim.Render("> filter…")
 	}
 
+	filterSep := styleDim.Render(strings.Repeat("─", listWidth))
 	listPane := stylePanelBorder.Width(listWidth).Render(
-		lipgloss.JoinVertical(lipgloss.Left, filterBar, m.list.View()),
+		lipgloss.JoinVertical(lipgloss.Left, filterBar, filterSep, m.list.View()),
 	)
 	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
@@ -278,12 +285,12 @@ func (m *catalogModel) SetSize(width, height int) {
 	m.height = height
 	listWidth := width * 35 / 100
 	contentHeight := height - 5
-	itemsHeight := ((contentHeight - 2) / 3) * 3
+	itemsHeight := ((contentHeight - 3) / 3) * 3
 	listHeight := itemsHeight + 1
 	d := catalogDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)
 	m.detail.Width = width - listWidth
-	m.detail.Height = contentHeight - 1
+	m.detail.Height = contentHeight
 	m.updateDetail()
 }

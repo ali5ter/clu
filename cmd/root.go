@@ -58,9 +58,16 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 
 	// TUI mode — pass fetch function so TUI can show loading screen
-	finalModel, err := tui.Run(func() ([]api.CatalogItem, []api.Article, *api.About, error) {
-		return loadData(client)
-	})
+	finalModel, err := tui.Run(
+		func() ([]api.CatalogItem, []api.Article, *api.About, error) {
+			return loadData(client)
+		},
+		version,
+		func() string {
+			v, _ := client.FetchLatestVersion()
+			return v
+		},
+	)
 	if err != nil {
 		return err
 	}

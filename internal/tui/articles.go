@@ -40,10 +40,10 @@ func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list
 	var indicator, title string
 	if selected {
 		indicator = styleCopper.Render("▶")
-		title = styleSelected.Width(titleWidth).Render(ai.Article.Title)
+		title = styleSelected.Width(titleWidth).Render(truncate(ai.Article.Title, titleWidth))
 	} else {
 		indicator = " "
-		title = styleNormal.Width(titleWidth).Render(ai.Article.Title)
+		title = styleNormal.Width(titleWidth).Render(truncate(ai.Article.Title, titleWidth))
 	}
 	line1 := fmt.Sprintf("%s %s", indicator, title)
 
@@ -59,9 +59,9 @@ func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(meta)
+		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
 	} else {
-		line2 = "  " + styleDim.Width(metaWidth).Render(meta)
+		line2 = "  " + styleDim.Width(metaWidth).Render(truncate(meta, metaWidth))
 	}
 
 	fmt.Fprintln(w, line1)
@@ -87,9 +87,9 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 
 	listWidth := width * 35 / 100
 	contentHeight := height - 5
-	itemsHeight := ((contentHeight - 2) / 3) * 3
+	// subtract 3: filter bar(1) + filter separator(1) + pagination dots(1)
+	itemsHeight := ((contentHeight - 3) / 3) * 3
 	listHeight := itemsHeight + 1
-
 	delegate := articlesDelegate{width: listWidth}
 	l := list.New(listItems, delegate, listWidth, listHeight)
 	l.SetShowTitle(false)
@@ -104,7 +104,7 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 	fi.Prompt = "> "
 
 	detailWidth := width - listWidth
-	vp := viewport.New(detailWidth, contentHeight-1)
+	vp := viewport.New(detailWidth, contentHeight)
 
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
@@ -212,7 +212,7 @@ func (m *articlesModel) applyFilter() {
 	var filtered []list.Item
 	for _, a := range m.articles {
 		ai := articleItem{a}
-		if q == "" || strings.Contains(strings.ToLower(ai.FilterValue()+" "+a.Summary), q) {
+		if q == "" || strings.Contains(strings.ToLower(ai.FilterValue()), q) {
 			filtered = append(filtered, ai)
 		}
 	}
@@ -233,8 +233,9 @@ func (m articlesModel) View() string {
 		filterBar = styleDim.Render("> filter…")
 	}
 
+	filterSep := styleDim.Render(strings.Repeat("─", listWidth))
 	listPane := stylePanelBorder.Width(listWidth).Render(
-		lipgloss.JoinVertical(lipgloss.Left, filterBar, m.list.View()),
+		lipgloss.JoinVertical(lipgloss.Left, filterBar, filterSep, m.list.View()),
 	)
 	detailPane := lipgloss.NewStyle().Width(detailWidth).Padding(0, 1).Render(m.detail.View())
 
@@ -254,13 +255,13 @@ func (m *articlesModel) SetSize(width, height int) {
 	listWidth := width * 35 / 100
 	detailWidth := width - listWidth
 	contentHeight := height - 5
-	itemsHeight := ((contentHeight - 2) / 3) * 3
+	itemsHeight := ((contentHeight - 3) / 3) * 3
 	listHeight := itemsHeight + 1
 	d := articlesDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)
 	m.detail.Width = detailWidth
-	m.detail.Height = contentHeight - 1
+	m.detail.Height = contentHeight
 	if m.renderer != nil {
 		m.renderer, _ = glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
