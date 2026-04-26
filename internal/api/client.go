@@ -13,7 +13,7 @@ const (
 	CatalogURL  = "https://commandlineuser.com/api/catalog.json"
 	ArticlesURL = "https://commandlineuser.com/api/articles.json"
 	AboutURL    = "https://commandlineuser.com/api/about.json"
-	VersionURL  = "https://commandlineuser.com/releases/version.json"
+	VersionURL  = "https://api.github.com/repos/ali5ter/clu/releases/latest"
 
 	httpTimeout = 8 * time.Second
 )
@@ -64,12 +64,14 @@ func (c *Client) FetchAbout() (*About, error) {
 }
 
 // FetchLatestVersion retrieves the latest published release version, e.g. "1.2.3".
+// Uses the GitHub Releases API so the version is always up to date with no extra
+// server infrastructure required.
 func (c *Client) FetchLatestVersion() (string, error) {
 	var v struct {
-		Version string `json:"version"`
+		TagName string `json:"tag_name"`
 	}
 	if err := c.fetch(VersionURL, &v); err != nil {
 		return "", err
 	}
-	return strings.TrimPrefix(v.Version, "v"), nil
+	return strings.TrimPrefix(v.TagName, "v"), nil
 }
