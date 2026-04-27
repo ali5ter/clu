@@ -62,9 +62,16 @@ only when Ctrl-J is pressed; `SelectedCatalogItem()` returns nil unless `jsonMod
 
 - `catalog.go` — list (Bubbles) + detail viewport (Bubbles); left/right split
 - `articles.go` — list + Glamour-rendered markdown viewport
-- `about.go` — static Lip Gloss-styled text
+- `about.go` — Glamour-rendered markdown (rewritten from static Lip Gloss text in v1.2.0)
 
 Key bindings are centralised in `keys.go`. All colours/borders come from `styles.go`.
+
+Three independent `spinner.Model` instances (one per tab) tick concurrently; only the active tab's animation
+renders. Each tab has a distinct animation style: bouncing dot (Catalog), rippling dots (Articles), slow
+heartbeat pulse (About).
+
+A version check runs on startup against `api.github.com/repos/ali5ter/clu/releases/latest`. If a newer version
+is available, a copper badge renders right-aligned in the footer.
 
 ### Data flow
 
@@ -135,13 +142,27 @@ Tabs or key bindings switch between Catalog / Articles / About views.
 - `--offline` flag falls back to local cache snapshots
 - ASCII art banner with live item counts
 
+### Filter scope
+
+Filter in both Catalog and Articles panes matches against name, category, and tags only. The summary field
+is intentionally excluded to prevent false positive matches (e.g. 'ba' matching 'bash' in unrelated tool
+summaries).
+
+### Detail viewport height
+
+`contentHeight` (not `contentHeight-1`) is used for the detail viewport. The off-by-one was introduced when
+the filter separator line was added in v1.2.0; using the full height keeps footer alignment consistent across
+all three tabs.
+
 ### Distribution model
 
 1. Tag release → GoReleaser builds macOS/Linux arm64+amd64 binaries
 2. GitHub Actions pushes tarballs to `commandlineuser.com/releases/` (DreamHost SFTP)
-3. `releases/version.json` updated with latest version string
-4. `commandlineuser.com/install` detects platform and installs binary
-5. GoReleaser updates `ali5ter/homebrew-clu` formula automatically via `HOMEBREW_TAP_TOKEN` secret
+3. `commandlineuser.com/install` detects platform and installs binary
+4. GoReleaser updates `ali5ter/homebrew-clu` formula automatically via `HOMEBREW_TAP_TOKEN` secret
+
+Note: a `releases/version.json` file was originally planned but is never written by the release workflow.
+The version check uses `api.github.com/repos/ali5ter/clu/releases/latest` directly.
 
 ---
 
