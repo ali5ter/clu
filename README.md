@@ -85,10 +85,17 @@ A scored list of CLI tools on the left; detail on the right. The score colours t
 something: green means the tool rated highly on utility, maturity, and maintenance.
 Grey means it's worth knowing about but didn't break into the top tier.
 
+Filter with `/` — matches name, category, and tags.
+
 ### Articles
 
 Feature articles from the site rendered in the terminal. Navigate the list on the left,
 read on the right. Scroll the article with `shift+↑` and `shift+↓`.
+
+### About
+
+Site description, author bio, catalogue methodology, and links — rendered with the same
+Glamour markdown engine as the Articles pane.
 
 ### Key bindings
 
@@ -101,6 +108,8 @@ read on the right. Scroll the article with `shift+↑` and `shift+↓`.
 | `shift+↑` / `shift+↓`   | Scroll detail pane                    |
 | `tab` / `shift+tab`      | Switch tabs                           |
 | `q`                      | Quit                                  |
+
+If a newer version of clu is available, a badge appears in the right of the footer.
 
 ---
 
