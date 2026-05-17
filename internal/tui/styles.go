@@ -1,6 +1,6 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // truncate clips s to max runes, appending "…" if trimmed.
 func truncate(s string, max int) string {

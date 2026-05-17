@@ -5,12 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/lipgloss/v2"
 	wrap "github.com/muesli/reflow/wordwrap"
 	"github.com/ali5ter/clu/internal/api"
 )
@@ -117,11 +117,15 @@ func newCatalogModel(items []api.CatalogItem, width, height int) catalogModel {
 
 	fi := textinput.New()
 	fi.Placeholder = "filter…"
-	fi.PromptStyle = styleFilterPrompt
-	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
+	styles := textinput.DefaultDarkStyles()
+	styles.Focused.Prompt = styleFilterPrompt
+	styles.Focused.Text = styleFilterText
+	styles.Blurred.Prompt = styleFilterPrompt
+	styles.Blurred.Text = styleFilterText
+	fi.SetStyles(styles)
 
-	vp := viewport.New(width-listWidth, contentHeight)
+	vp := viewport.New(viewport.WithWidth(width-listWidth), viewport.WithHeight(contentHeight))
 
 	m := catalogModel{
 		list:   l,
@@ -154,11 +158,11 @@ func (m *catalogModel) updateDetail() {
 		sb.WriteString(styleDetailLabel.Render(k+":") + "  " + styleDetailValue.Render(v) + "\n")
 	}
 
-	sepWidth := m.detail.Width - 2
+	sepWidth := m.detail.Width() - 2
 	if sepWidth < 1 {
 		sepWidth = 1
 	}
-	wrapWidth := m.detail.Width - 4
+	wrapWidth := m.detail.Width() - 4
 	if wrapWidth < 20 {
 		wrapWidth = 20
 	}
@@ -189,7 +193,7 @@ func (m catalogModel) Update(msg tea.Msg) (catalogModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filtering {
 			switch msg.String() {
 			case "enter", "esc":
@@ -214,8 +218,8 @@ func (m catalogModel) Update(msg tea.Msg) (catalogModel, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Filter):
 			m.filtering = true
-			m.filter.Focus()
-			return m, textinput.Blink
+			focusCmd := m.filter.Focus()
+			return m, focusCmd
 		case key.Matches(msg, keys.Up):
 			var cmd tea.Cmd
 			m.list, cmd = m.list.Update(msg)
@@ -290,7 +294,7 @@ func (m *catalogModel) SetSize(width, height int) {
 	d := catalogDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)
-	m.detail.Width = width - listWidth
-	m.detail.Height = contentHeight
+	m.detail.SetWidth(width - listWidth)
+	m.detail.SetHeight(contentHeight)
 	m.updateDetail()
 }

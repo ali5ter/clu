@@ -5,13 +5,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/glamour/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/ali5ter/clu/internal/api"
 )
 
@@ -99,15 +99,19 @@ func newArticlesModel(articles []api.Article, width, height int) articlesModel {
 
 	fi := textinput.New()
 	fi.Placeholder = "filter…"
-	fi.PromptStyle = styleFilterPrompt
-	fi.TextStyle = styleFilterText
 	fi.Prompt = "> "
+	styles := textinput.DefaultDarkStyles()
+	styles.Focused.Prompt = styleFilterPrompt
+	styles.Focused.Text = styleFilterText
+	styles.Blurred.Prompt = styleFilterPrompt
+	styles.Blurred.Text = styleFilterText
+	fi.SetStyles(styles)
 
 	detailWidth := width - listWidth
-	vp := viewport.New(detailWidth, contentHeight)
+	vp := viewport.New(viewport.WithWidth(detailWidth), viewport.WithHeight(contentHeight))
 
 	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStylePath("dark"),
 		glamour.WithWordWrap(detailWidth-2),
 	)
 
@@ -156,7 +160,7 @@ func (m articlesModel) Update(msg tea.Msg) (articlesModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filtering {
 			switch msg.String() {
 			case "enter", "esc":
@@ -181,8 +185,7 @@ func (m articlesModel) Update(msg tea.Msg) (articlesModel, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Filter):
 			m.filtering = true
-			m.filter.Focus()
-			return m, textinput.Blink
+			return m, m.filter.Focus()
 		case key.Matches(msg, keys.Up):
 			var cmd tea.Cmd
 			m.list, cmd = m.list.Update(msg)
@@ -194,9 +197,9 @@ func (m articlesModel) Update(msg tea.Msg) (articlesModel, tea.Cmd) {
 			cmds = append(cmds, cmd)
 			m.updateDetail()
 		case key.Matches(msg, keys.ScrollUp):
-			m.detail.LineUp(5)
+			m.detail.ScrollUp(5)
 		case key.Matches(msg, keys.ScrollDown):
-			m.detail.LineDown(5)
+			m.detail.ScrollDown(5)
 		}
 	}
 
@@ -260,11 +263,11 @@ func (m *articlesModel) SetSize(width, height int) {
 	d := articlesDelegate{width: listWidth}
 	m.list.SetDelegate(d)
 	m.list.SetSize(listWidth, listHeight)
-	m.detail.Width = detailWidth
-	m.detail.Height = contentHeight
+	m.detail.SetWidth(detailWidth)
+	m.detail.SetHeight(contentHeight)
 	if m.renderer != nil {
 		m.renderer, _ = glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
+			glamour.WithStylePath("dark"),
 			glamour.WithWordWrap(detailWidth-2),
 		)
 	}

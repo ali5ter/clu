@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/lipgloss/v2"
 	"github.com/ali5ter/clu/internal/api"
 )
 
@@ -71,14 +71,14 @@ type Model struct {
 	catalogItems []api.CatalogItem
 	articleItems []api.Article
 
-	loading     bool
-	spinner     spinner.Model
+	loading      bool
+	spinner      spinner.Model
 	animCatalog  spinner.Model
 	animArticles spinner.Model
 	animAbout    spinner.Model
-	fetch       FetchFn
-	err      error
-	jsonMode bool // true only when user pressed ^J
+	fetch        FetchFn
+	err          error
+	jsonMode     bool // true only when user pressed ^J
 
 	currentVersion string
 	latestVersion  string
@@ -116,8 +116,10 @@ func newLoadingModel(fetch FetchFn, currentVersion string, checkVersion func() s
 
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
-		m.spinner.Tick,
-		m.animCatalog.Tick, m.animArticles.Tick, m.animAbout.Tick,
+		func() tea.Msg { return m.spinner.Tick() },
+		func() tea.Msg { return m.animCatalog.Tick() },
+		func() tea.Msg { return m.animArticles.Tick() },
+		func() tea.Msg { return m.animAbout.Tick() },
 		m.loadData(), m.doVersionCheck(),
 	)
 }
@@ -176,7 +178,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.animAbout, c4 = m.animAbout.Update(msg)
 		return m, tea.Batch(c1, c2, c3, c4)
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if key.Matches(msg, keys.Quit) {
 			return m, tea.Quit
 		}
@@ -210,12 +212,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, keys.ScrollUp):
 			if m.activeTab == tabAbout {
-				m.about.viewport.LineUp(5)
+				m.about.viewport.ScrollUp(5)
 				return m, nil
 			}
 		case key.Matches(msg, keys.ScrollDown):
 			if m.activeTab == tabAbout {
-				m.about.viewport.LineDown(5)
+				m.about.viewport.ScrollDown(5)
 				return m, nil
 			}
 		}
@@ -237,24 +239,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	var content string
 	if m.err != nil {
-		return lipgloss.NewStyle().
+		content = lipgloss.NewStyle().
 			Foreground(colorCopper).
 			Padding(1, 2).
 			Render(fmt.Sprintf("Error loading data: %v\n\nPress q to quit.", m.err))
+	} else if m.loading {
+		content = m.loadingView()
+	} else {
+		sep := styleDim.Render(strings.Repeat("─", m.width))
+		content = lipgloss.JoinVertical(lipgloss.Left,
+			m.headerView(),
+			sep,
+			m.contentView(),
+			sep,
+			m.statusView(),
+		)
 	}
-	if m.loading {
-		return m.loadingView()
-	}
-	sep := styleDim.Render(strings.Repeat("─", m.width))
-	return lipgloss.JoinVertical(lipgloss.Left,
-		m.headerView(),
-		sep,
-		m.contentView(),
-		sep,
-		m.statusView(),
-	)
+	v := tea.NewView(content)
+	v.AltScreen = true
+	v.WindowTitle = "clu"
+	return v
 }
 
 func (m Model) loadingView() string {
@@ -403,7 +410,7 @@ func openBrowser(url string) {
 // Run starts the Bubble Tea program with async data loading and returns the final model.
 func Run(fetch FetchFn, currentVersion string, checkVersion func() string) (*Model, error) {
 	m := newLoadingModel(fetch, currentVersion, checkVersion)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m)
 	final, err := p.Run()
 	if err != nil {
 		return nil, err

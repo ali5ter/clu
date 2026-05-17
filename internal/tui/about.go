@@ -3,10 +3,10 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/glamour/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/ali5ter/clu/internal/api"
 )
 
@@ -19,9 +19,9 @@ type aboutModel struct {
 }
 
 func newAboutModel(about *api.About, width, height int) aboutModel {
-	vp := viewport.New(width, height-5)
+	vp := viewport.New(viewport.WithWidth(width), viewport.WithHeight(height-5))
 	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStylePath("dark"),
 		glamour.WithWordWrap(width-4),
 	)
 	m := aboutModel{
@@ -83,11 +83,11 @@ func (m aboutModel) View() string {
 func (m *aboutModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.viewport.Width = width
-	m.viewport.Height = height - 5
+	m.viewport.SetWidth(width)
+	m.viewport.SetHeight(height - 5)
 	if m.renderer != nil {
 		m.renderer, _ = glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
+			glamour.WithStylePath("dark"),
 			glamour.WithWordWrap(width-4),
 		)
 	}
