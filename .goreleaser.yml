@@ -25,9 +25,10 @@ checksum:
 
 brews:
   - name: clu
+    directory: Formula
     repository:
       owner: ali5ter
-      name: homebrew-clu
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     homepage: https://commandlineuser.com
     description: A terminal interface for the commandlineuser.com CLI catalogue
