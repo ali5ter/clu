@@ -48,8 +48,8 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 
 	var indicator, name string
 	if selected {
-		indicator = styleCopper.Render("▶")
-		name = styleSelected.Width(nameWidth).Render(truncate(ci.Name, nameWidth))
+		indicator = styleSelectedBar.Render("▎")
+		name = styleListSelected.Width(nameWidth).Render(truncate(ci.Name, nameWidth))
 	} else {
 		indicator = " "
 		name = styleNormal.Width(nameWidth).Render(truncate(ci.Name, nameWidth))
@@ -64,7 +64,7 @@ func (d catalogDelegate) Render(w io.Writer, m list.Model, index int, item list.
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
+		line2 = indicator + " " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
 	} else {
 		line2 = "  " + styleDim.Width(metaWidth).Render(truncate(meta, metaWidth))
 	}
@@ -169,8 +169,10 @@ func (m *catalogModel) updateDetail() {
 	sb.WriteString(styleSelected.Render(it.Name) + "\n")
 	sb.WriteString(styleDim.Render(strings.Repeat("─", sepWidth)) + "\n\n")
 	sb.WriteString(styleDetailValue.Render(wrap.String(it.Summary, wrapWidth)) + "\n\n")
-	label("Score", scoreStyle(it.Score).Render(fmt.Sprintf("%.2f", it.Score)))
-	label("Confidence", fmt.Sprintf("%.2f", it.Confidence))
+	scoreBar := makeBar(it.Score, 10, 12, scoreStyle(it.Score))
+	label("Score", fmt.Sprintf("%s %.2f", scoreBar, it.Score))
+	confBar := makeBar(it.Confidence, 1.0, 12, lipgloss.NewStyle().Foreground(colorSteel))
+	label("Confidence", fmt.Sprintf("%s %.2f", confBar, it.Confidence))
 	label("Maturity", it.Maturity)
 	label("Maintenance", it.Maintenance)
 	label("Category", it.Category)

@@ -79,6 +79,7 @@ type Model struct {
 	fetch        FetchFn
 	err          error
 	jsonMode     bool // true only when user pressed ^J
+	showHelp     bool
 
 	currentVersion string
 	latestVersion  string
@@ -185,6 +186,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.loading || m.err != nil {
 			return m, nil
 		}
+		if key.Matches(msg, keys.Help) {
+			m.showHelp = !m.showHelp
+			return m, nil
+		}
+		if m.showHelp {
+			if msg.String() == "esc" {
+				m.showHelp = false
+			}
+			return m, nil
+		}
 
 		switch {
 		case key.Matches(msg, keys.TabNext):
@@ -257,6 +268,9 @@ func (m Model) View() tea.View {
 			sep,
 			m.statusView(),
 		)
+		if m.showHelp {
+			content = overlayDialog(content, m.helpDialog(), m.width, m.height)
+		}
 	}
 	v := tea.NewView(content)
 	v.AltScreen = true
@@ -265,21 +279,8 @@ func (m Model) View() tea.View {
 }
 
 func (m Model) loadingView() string {
-	// Site-palette gradient banner — cyan → blue-violet → magenta
-	c1 := lipgloss.NewStyle().Foreground(lipgloss.Color("#50d2ff"))
-	c2 := lipgloss.NewStyle().Foreground(lipgloss.Color("#8c96ff"))
-	c3 := lipgloss.NewStyle().Foreground(lipgloss.Color("#b464ff"))
-	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("#646478"))
-
-	banner := strings.Join([]string{
-		c1.Render(" _____  _     _   _ "),
-		c1.Render("/  __ \\| |   | | | |"),
-		c2.Render("| /  \\/| |   | | | |"),
-		c2.Render("| |    | |   | | | |"),
-		c3.Render("| \\__/\\| |___| |_| |"),
-		c3.Render(" \\____/\\_____/\\___/ "),
-		dim.Render(" commandlineuser.com"),
-	}, "\n")
+	subtitle := lipgloss.NewStyle().Foreground(colorMuted).Render(" commandlineuser.com")
+	banner := renderLogo() + "\n" + subtitle
 
 	status := lipgloss.NewStyle().
 		Foreground(colorMuted).
@@ -295,7 +296,7 @@ func (m Model) loadingView() string {
 }
 
 func (m Model) headerView() string {
-	logo := styleHeaderAccent.Render("clu")
+	logo := renderHeaderLogo()
 	site := styleHeader.Render(" · commandlineuser.com")
 	counts := styleHeader.Render(fmt.Sprintf("%d tools  %d articles",
 		len(m.catalogItems), len(m.articleItems)))
@@ -342,6 +343,7 @@ func (m Model) statusView() string {
 		styleStatusKey.Render("⇧↑↓") + " scroll",
 		styleStatusKey.Render("tab") + " switch",
 		styleStatusKey.Render("q") + " quit",
+		styleStatusKey.Render("?") + " help",
 	}
 	left := strings.Join(bindings, "  ")
 
@@ -375,6 +377,35 @@ func (m Model) statusView() string {
 	}
 
 	return styleStatusBar.Width(m.width).Render(left + strings.Repeat(" ", gap) + right)
+}
+
+// helpDialog renders the full keybinding legend as a modal dialog body.
+func (m Model) helpDialog() string {
+	rows := [][2]string{
+		{"↑/k ↓/j", "navigate list"},
+		{"/", "filter"},
+		{"enter", "open in browser"},
+		{"^J", "emit selected item as JSON & quit"},
+		{"⇧↑ ⇧↓", "scroll detail (About tab)"},
+		{"tab ⇧tab", "switch tabs"},
+		{"?", "toggle this help"},
+		{"q ^C", "quit"},
+	}
+	keyWidth := 0
+	for _, r := range rows {
+		if w := lipgloss.Width(r[0]); w > keyWidth {
+			keyWidth = w
+		}
+	}
+	var sb strings.Builder
+	for i, r := range rows {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		sb.WriteString(styleStatusKey.Background(colorPanel).Width(keyWidth).Render(r[0]))
+		sb.WriteString("  " + styleDetailValue.Render(r[1]))
+	}
+	return renderDialog("clu — keybindings", sb.String(), "esc to close")
 }
 
 func (m Model) activeURL() string {

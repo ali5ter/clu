@@ -39,8 +39,8 @@ func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list
 	titleWidth := d.width - 2
 	var indicator, title string
 	if selected {
-		indicator = styleCopper.Render("▶")
-		title = styleSelected.Width(titleWidth).Render(truncate(ai.Article.Title, titleWidth))
+		indicator = styleSelectedBar.Render("▎")
+		title = styleListSelected.Width(titleWidth).Render(truncate(ai.Article.Title, titleWidth))
 	} else {
 		indicator = " "
 		title = styleNormal.Width(titleWidth).Render(truncate(ai.Article.Title, titleWidth))
@@ -59,7 +59,7 @@ func (d articlesDelegate) Render(w io.Writer, m list.Model, index int, item list
 	metaWidth := d.width - 2
 	var line2 string
 	if selected {
-		line2 = "  " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
+		line2 = indicator + " " + styleDetailMuted.Width(metaWidth).Render(truncate(meta, metaWidth))
 	} else {
 		line2 = "  " + styleDim.Width(metaWidth).Render(truncate(meta, metaWidth))
 	}
