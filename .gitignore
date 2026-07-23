@@ -18,3 +18,5 @@ dist/
 .vscode/
 *.swp
 CLAUDE.md
+AGENTS.md
+AGENTS.md.backup.*
